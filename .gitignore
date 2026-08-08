@@ -1,0 +1,44 @@
+# Python / Virtualenv
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Scratch, uploads, downloads & backups
+scratch/
+uploads/
+downloads/
+calisma/
+docx_temp/
+veriler/
+backups/
+BACKUP_*/
+CURRENT_BACKUP_*/
+eski/
+
+# Logs, Heavy Media & Large Data Dumps
+*.log
+*.sqlite
+*.db
+*.tar.gz
+*.zip
+*.pdf
+*.mp4
+*.xlsx
+*.xlsm
+*_cache.json
+*_dump.json
+*_latest.json
+*_analysis.json
+backend.log
+sync.log
+ngrok*.log
+error.log
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
