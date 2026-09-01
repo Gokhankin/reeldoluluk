@@ -10,10 +10,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js Plugin Datalabels -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
     <style>
         :root {
             --bg-color: #0f172a;
-            --card-bg: rgba(30, 41, 59, 0.45);
+            --card-bg: rgba(30, 41, 59, 0.55);
             --border-color: rgba(255, 255, 255, 0.08);
             --text-primary: #f8fafc;
             --text-secondary: #94a3b8;
@@ -24,6 +26,8 @@
             --warning: #f59e0b;
             --danger: #ef4444;
             --cyan: #06b6d4;
+            --orange: #f97316;
+            --teal: #0ea5e9;
         }
 
         * {
@@ -41,13 +45,29 @@
             background-attachment: fixed;
             color: var(--text-primary);
             min-height: 100vh;
-            padding: 2rem;
+            padding: 1.5rem;
             line-height: 1.5;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1550px;
             margin: 0 auto;
+        }
+
+        /* Animations */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .kpi-card, .card-container {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
         /* Header Style */
@@ -55,13 +75,15 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             background: var(--card-bg);
             backdrop-filter: blur(12px);
             border: 1px solid var(--border-color);
-            padding: 1.5rem 2rem;
+            padding: 1.25rem 1.75rem;
             border-radius: 16px;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .header-title {
@@ -78,14 +100,14 @@
         }
 
         .header-title h1 {
-            font-size: 1.8rem;
+            font-size: 1.6rem;
             font-weight: 700;
             letter-spacing: -0.5px;
         }
 
         .header-title p {
             color: var(--text-secondary);
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             margin-top: 2px;
         }
 
@@ -97,7 +119,7 @@
         }
 
         select {
-            background: rgba(15, 23, 42, 0.6);
+            background: rgba(15, 23, 42, 0.7);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
             padding: 0.6rem 1.2rem;
@@ -117,9 +139,9 @@
         /* KPI Grid */
         .kpi-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 1.5rem;
         }
 
         .kpi-card {
@@ -127,7 +149,7 @@
             backdrop-filter: blur(12px);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 1.25rem 1.5rem;
             position: relative;
             overflow: hidden;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -135,7 +157,7 @@
         }
 
         .kpi-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-4px);
             border-color: rgba(139, 92, 246, 0.3);
             box-shadow: 0 12px 40px 0 rgba(139, 92, 246, 0.15);
         }
@@ -151,35 +173,43 @@
         }
 
         .kpi-card.success::before { background: var(--success); }
-        .kpi-card.success:hover {
-            border-color: rgba(16, 185, 129, 0.3);
-            box-shadow: 0 12px 40px 0 rgba(16, 185, 129, 0.15);
-        }
         .kpi-card.danger::before { background: var(--danger); }
-        .kpi-card.danger:hover {
-            border-color: rgba(239, 68, 68, 0.3);
-            box-shadow: 0 12px 40px 0 rgba(239, 68, 68, 0.15);
-        }
 
         .kpi-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             color: var(--text-secondary);
-            font-size: 0.9rem;
-            font-weight: 500;
-            margin-bottom: 1rem;
-        }
-
-        .kpi-header i {
-            font-size: 1.2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
         }
 
         .kpi-value {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             font-weight: 700;
-            letter-spacing: -1px;
+            letter-spacing: -0.5px;
             margin-bottom: 0.5rem;
+            display: flex;
+            align-items: baseline;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+        }
+
+        .kpi-progress-bg {
+            width: 100%;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 4px;
+            margin-top: 0.75rem;
+            overflow: hidden;
+        }
+
+        .kpi-progress-bar {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 1.4s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
         .kpi-subtext {
@@ -187,6 +217,7 @@
             color: var(--text-secondary);
             display: flex;
             justify-content: space-between;
+            margin-top: 0.5rem;
         }
 
         .kpi-subtext span.highlight {
@@ -194,32 +225,20 @@
             font-weight: 600;
         }
 
-        /* Main Content Layout */
-        .main-layout {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 2rem;
-        }
-
-        @media (min-width: 1024px) {
-            .main-layout {
-                grid-template-columns: 3fr 2fr;
-            }
-        }
-
         .card-container {
             background: var(--card-bg);
             backdrop-filter: blur(12px);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 1.5rem;
+            padding: 1.25rem 1.5rem;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.15);
+            margin-bottom: 1.5rem;
         }
 
         .card-title {
-            font-size: 1.2rem;
+            font-size: 1.15rem;
             font-weight: 600;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -231,81 +250,108 @@
             color: var(--primary);
         }
 
-        /* Chart Area */
+        /* Chart Wrapper */
         .chart-wrapper {
             position: relative;
             height: 380px;
             width: 100%;
         }
 
+        .chart-wrapper-lg {
+            position: relative;
+            height: 420px;
+            width: 100%;
+        }
+
         /* Table Design */
         .table-responsive {
+            width: 100%;
             overflow-x: auto;
-            max-height: 500px;
+            max-height: 520px;
             border-radius: 8px;
             border: 1px solid var(--border-color);
+            -webkit-overflow-scrolling: touch;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
             text-align: left;
-            font-size: 0.9rem;
+            font-size: 0.88rem;
         }
 
         th {
-            background-color: #1e293b; /* Opaque solid background to prevent scrolled rows from showing behind */
+            background-color: #1e293b;
             color: var(--text-secondary);
             font-weight: 600;
-            padding: 1rem;
+            padding: 0.85rem 1rem;
             position: sticky;
             top: 0;
             z-index: 10;
             border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
         }
 
         td {
-            padding: 0.85rem 1rem;
+            padding: 0.75rem 1rem;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-primary);
+            white-space: nowrap;
         }
 
         tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
+            background: rgba(255, 255, 255, 0.03);
         }
 
         .text-center { text-align: center; }
         .text-right { text-align: right; }
-        
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 0.25rem 0.5rem;
-            border-radius: 6px;
-            font-size: 0.75rem;
-            font-weight: 600;
+
+        /* Seasonal Table Custom Headers */
+        .hdr-forecast {
+            background-color: #0f172a !important;
+            color: var(--cyan) !important;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .badge.success { background: rgba(16, 185, 129, 0.15); color: var(--success); }
-        .badge.warning { background: rgba(245, 158, 11, 0.15); color: var(--warning); }
-        .badge.danger { background: rgba(239, 68, 68, 0.15); color: var(--danger); }
-
-        .mismatch-row {
-            border-left: 3px solid var(--danger);
+        .hdr-unused {
+            background-color: rgba(239, 68, 68, 0.15) !important;
+            color: var(--danger) !important;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .mismatch-cell {
-            color: var(--danger);
-            font-weight: 600;
+        .hdr-reel {
+            background-color: rgba(16, 185, 129, 0.15) !important;
+            color: var(--success) !important;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+        }
+
+        .tr-total {
+            background-color: rgba(139, 92, 246, 0.12) !important;
+            font-weight: 700;
+        }
+
+        .tr-total td {
+            border-top: 2px solid var(--primary);
+            color: #ffffff;
         }
 
         .spinner {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 300px;
-            font-size: 1.2rem;
+            height: 250px;
+            font-size: 1.1rem;
             color: var(--text-secondary);
             gap: 0.5rem;
         }
@@ -318,112 +364,16 @@
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            body { padding: 8px !important; }
+            header { padding: 1rem !important; }
+            .header-title h1 { font-size: 1.3rem; }
+            .chart-wrapper, .chart-wrapper-lg { min-width: 550px !important; }
+            .card-container { padding: 1rem !important; }
+        }
     </style>
-
-<style>
-/* Global Responsive Mobile Tweaks */
-html, body {
-    max-width: 100vw !important;
-    overflow-x: hidden !important;
-}
-.container, .container-fluid, main, .main-content, .card, div {
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-}
-table {
-    display: block !important;
-    width: 100% !important;
-    overflow-x: auto !important;
-    white-space: nowrap !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-.table-responsive, .responsive-table-wrapper {
-    width: 100% !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-@media (max-width: 768px) {
-    .grid, .row, [class*="grid-cols-"] {
-        grid-template-columns: 1fr !important;
-    }
-    .flex-wrap-mobile {
-        flex-direction: column !important;
-    }
-    input, select, button {
-        font-size: 16px !important; /* Prevents auto zoom on iOS */
-    }
-}
-</style>
-
-<style>
-/* Reel Doluluk Mobile Chart & Table Responsive Fixes */
-@media (max-width: 768px) {
-    body {
-        padding: 8px !important;
-    }
-    .chart-container, canvas, div:has(> canvas) {
-        min-width: 500px !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-    }
-    .table-responsive, div:has(> table) {
-        width: 100% !important;
-        overflow-x: auto !important;
-        -webkit-overflow-scrolling: touch !important;
-    }
-    table {
-        min-width: 750px !important;
-        white-space: nowrap !important;
-    }
-    th, td {
-        padding: 8px 10px !important;
-        white-space: nowrap !important;
-    }
-}
-</style>
-
-<style>
-/* Unlimited Horizontal & Vertical Scroll for Reel Doluluk Raporu Tabs, Charts & Tables */
-html, body {
-    overflow-x: auto !important;
-    max-width: none !important;
-    -webkit-overflow-scrolling: touch !important;
-}
-
-.container, .container-fluid, main, section, div, .modal, .modal-dialog, .modal-body, .tab-content, .tab-pane, .card {
-    max-width: none !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x pan-y !important;
-}
-
-.nav, .nav-tabs, .btn-group, div:has(> button), .flex {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x pan-y !important;
-}
-
-.chart-container, canvas, div:has(> canvas) {
-    min-width: 600px !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
-    touch-action: pan-x pan-y !important;
-}
-
-table, .table {
-    min-width: 850px !important;
-    width: auto !important;
-    white-space: nowrap !important;
-    table-layout: auto !important;
-}
-
-th, td {
-    white-space: nowrap !important;
-    padding: 8px 12px !important;
-}
-</style>
 </head>
 <body>
 
@@ -431,20 +381,20 @@ th, td {
     <!-- Header -->
     <header>
         <div class="header-title">
-            <i class="fa-solid fa-hotel"></i>
+            <i class="fa-solid fa-chart-line"></i>
             <div>
                 <h1>Reel Doluluk Analiz Raporu</h1>
-                <p>Sedna Live SQL doluluk verileri ile fiili gerçek zamanlı doluluk takibi</p>
+                <p>Sedna Live SQL doluluk verileri ve Sezonluk Reel Doluluk / Unused analizi</p>
             </div>
         </div>
         <div class="controls">
-            <select id="year-select" onchange="loadData()">
+            <select id="year-select" onchange="loadAllData()">
                 <option value="2026" selected>2026 Sezonu</option>
                 <option value="2025">2025 Sezonu</option>
             </select>
-            <select id="month-select" onchange="loadData()">
+            <select id="month-select" onchange="loadMonthlyData()">
                 <option value="05">Mayıs</option>
-                <option value="06" selected>Haziran</option>
+                <option value="06">Haziran</option>
                 <option value="07">Temmuz</option>
                 <option value="08">Ağustos</option>
                 <option value="09">Eylül</option>
@@ -453,107 +403,162 @@ th, td {
         </div>
     </header>
 
-    <!-- KPI Panel -->
+    <!-- KPI Panel (Selected Month) -->
     <div class="kpi-grid" id="kpi-panel">
-        <!-- Will be populated dynamically -->
+        <!-- Filled dynamically -->
     </div>
 
-    <!-- Main Content Layout -->
-    <div class="main-layout">
-        <!-- Left: Occupancy Chart -->
-        <div class="card-container">
-            <div class="card-title">
-                <i class="fa-solid fa-chart-line"></i>
-                Fiili Doluluk Grafiği (%)
-            </div>
+    <!-- FULL WIDTH MONTHLY CHART -->
+    <div class="card-container">
+        <div class="card-title">
+            <i class="fa-solid fa-chart-area"></i>
+            <span id="monthly-chart-title">Seçili Ay Günlük Doluluk Grafiği (%)</span>
+        </div>
+        <div class="table-responsive" style="border:none;">
             <div class="chart-wrapper">
                 <canvas id="occupancy-chart"></canvas>
             </div>
         </div>
+    </div>
 
-        <!-- Right: Reel Doluluk Mantığı -->
-        <div class="card-container">
-            <div class="card-title">
-                <i class="fa-solid fa-circle-info"></i>
-                Reel Doluluk Bilgilendirmesi
-            </div>
-            <div style="display:flex; flex-direction:column; gap:1rem;">
-                <div style="background:rgba(6, 182, 212, 0.05); border:1px solid rgba(6, 182, 212, 0.15); padding:1.25rem; border-radius:12px;">
-                    <h3 style="color:var(--cyan); font-size:1rem; font-weight:600; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
-                        <i class="fa-solid fa-circle-question"></i> Hesaplama Formülü
-                    </h3>
-                    <p style="font-size:0.9rem; color:var(--text-secondary); line-height:1.5;">
-                        <strong>Reel Oda Doluluğu:</strong> SQL veritabanındaki brüt oda konaklamalarından, <strong>COMP</strong> (ücretsiz acente) odaları ile <strong>Neilson NOSHOW</strong> voucher kodlu kullanılmayan (unused) odaların çıkartılmasıyla hesaplanan gerçek net doluluktur.
-                    </p>
-                </div>
-                <div style="background:rgba(139, 92, 246, 0.05); border:1px solid rgba(139, 92, 246, 0.15); padding:1.25rem; border-radius:12px;">
-                    <h3 style="color:var(--primary); font-size:1rem; font-weight:600; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
-                        <i class="fa-solid fa-database"></i> Canlı Veritabanı Entegrasyonu
-                    </h3>
-                    <p style="font-size:0.9rem; color:var(--text-secondary); line-height:1.5;">
-                        Tüm veriler Sedna SQL veritabanından doğrudan ve gerçek zamanlı (live) olarak sorgulanır. Excel referansı kullanılmamaktadır.
-                    </p>
-                </div>
+    <!-- NEW SECTION: Seasonal Reel Doluluk / Unused Bar Chart -->
+    <div class="card-container">
+        <div class="card-title" style="color: var(--orange);">
+            <i class="fa-solid fa-chart-column" style="color: var(--orange);"></i>
+            <span id="seasonal-chart-title">2026 Reel Doluluk/Unused Grafiği</span>
+        </div>
+        <div id="seasonal-chart-loader" class="spinner">
+            <i class="fa-solid fa-circle-notch"></i> Sezonluk Grafik Yükleniyor...
+        </div>
+        <div class="table-responsive" id="seasonal-chart-wrapper" style="border:none; display:none;">
+            <div class="chart-wrapper-lg">
+                <canvas id="seasonal-bar-chart"></canvas>
             </div>
         </div>
+    </div>
 
-        <!-- Full Table Area (takes full width) -->
-        <div class="card-container" style="grid-column: 1 / -1;">
-            <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span style="display:flex; align-items:center; gap:0.5rem;">
-                    <i class="fa-solid fa-list-check"></i> Günlük Detaylı Reel Doluluk Matrisi
-                </span>
-                <span style="font-size:0.8rem; color:var(--text-secondary); font-weight:normal;" id="data-source-badge">
-                    Canlı SQL Veritabanı
-                </span>
-            </div>
-            <div id="table-loader" class="spinner">
-                <i class="fa-solid fa-circle-notch"></i> Veriler Sorgulanıyor...
-            </div>
-            <div class="table-responsive" id="table-wrapper" style="display:none;">
-                <table id="details-table">
-                    <thead>
-                        <tr>
-                            <th>Tarih</th>
-                            <th class="text-center">Kapasite</th>
-                            <th class="text-center">Satılan Oda</th>
-                            <th class="text-center">Unused Oda (Noshow)</th>
-                            <th class="text-center">Reel Satılan Oda</th>
-                            <th class="text-center">Reel Doluluk %</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <!-- Filled dynamically -->
-                    </tbody>
-                </table>
-            </div>
+    <!-- NEW SECTION: Seasonal Cumulative Monthly Table -->
+    <div class="card-container">
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="display:flex; align-items:center; gap:0.5rem; color:var(--cyan);">
+                <i class="fa-solid fa-table-list" style="color:var(--cyan);"></i>
+                <span id="seasonal-table-title">2026 Sezonu Kümülatif Ay Bazında Reel Doluluk Tablosu</span>
+            </span>
+            <span style="font-size:0.8rem; color:var(--text-secondary);" id="seasonal-badge">Canlı SQL Entegrasyonu</span>
+        </div>
+        <div id="seasonal-table-loader" class="spinner">
+            <i class="fa-solid fa-circle-notch"></i> Sezonluk Tablo Yükleniyor...
+        </div>
+        <div class="table-responsive" id="seasonal-table-wrapper" style="display:none;">
+            <table id="seasonal-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="vertical-align:middle; text-align:center; background:#0f172a; border-right:1px solid rgba(255,255,255,0.1);">Yıl</th>
+                        <th colspan="9" class="hdr-forecast">FORECAST</th>
+                        <th colspan="2" class="hdr-unused">UNUSED OLARAK İŞLENEN</th>
+                        <th colspan="3" class="hdr-reel">REEL DOLULUK</th>
+                    </tr>
+                    <tr>
+                        <th>Ay</th>
+                        <th class="text-center">Capacity</th>
+                        <th class="text-center">Sold Room</th>
+                        <th class="text-center">Difference</th>
+                        <th class="text-center">Adult</th>
+                        <th class="text-center">TotalPax</th>
+                        <th class="text-center">Cin_Room</th>
+                        <th class="text-center">Cout_Room</th>
+                        <th class="text-center">% Occ</th>
+                        <th class="text-center" style="color:var(--danger);">Unused Room</th>
+                        <th class="text-center" style="color:var(--danger);">Unused Pax</th>
+                        <th class="text-center" style="color:var(--success);">Reel Sold Room</th>
+                        <th class="text-center" style="color:var(--success);">Reel Pax</th>
+                        <th class="text-center" style="color:var(--cyan);">Reel Occ</th>
+                    </tr>
+                </thead>
+                <tbody id="seasonal-table-body">
+                    <!-- Filled dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Daily Details Table -->
+    <div class="card-container">
+        <div class="card-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="display:flex; align-items:center; gap:0.5rem;">
+                <i class="fa-solid fa-list-check"></i>
+                <span id="daily-table-title">Günlük Detaylı Reel Doluluk Matrisi</span>
+            </span>
+        </div>
+        <div id="table-loader" class="spinner">
+            <i class="fa-solid fa-circle-notch"></i> Günlük Veriler Yükleniyor...
+        </div>
+        <div class="table-responsive" id="table-wrapper" style="display:none;">
+            <table id="details-table">
+                <thead>
+                    <tr>
+                        <th>Tarih</th>
+                        <th class="text-center">Kapasite</th>
+                        <th class="text-center">Satılan Oda</th>
+                        <th class="text-center">Unused Oda (Noshow)</th>
+                        <th class="text-center">Reel Satılan Oda</th>
+                        <th class="text-center">Reel Doluluk %</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Filled dynamically -->
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
 <script>
-    let chartInstance = null;
+    Chart.register(ChartDataLabels);
+
+    let monthlyChartInstance = null;
+    let seasonalChartInstance = null;
 
     document.addEventListener("DOMContentLoaded", () => {
-        loadData();
+        const now = new Date();
+        const curYear = now.getFullYear().toString();
+        const curMonth = String(now.getMonth() + 1).padStart(2, '0');
+        
+        const yearSelect = document.getElementById("year-select");
+        if (yearSelect && yearSelect.querySelector(`option[value="${curYear}"]`)) {
+            yearSelect.value = curYear;
+        }
+        
+        const monthSelect = document.getElementById("month-select");
+        if (monthSelect && monthSelect.querySelector(`option[value="${curMonth}"]`)) {
+            monthSelect.value = curMonth;
+        }
+
+        loadAllData();
     });
 
-    function loadData() {
+    function loadAllData() {
+        loadMonthlyData();
+        loadSeasonalData();
+    }
+
+    function loadMonthlyData() {
         const year = document.getElementById("year-select").value;
         const month = document.getElementById("month-select").value;
         
-        // Show loaders
         document.getElementById("table-loader").style.display = "flex";
         document.getElementById("table-wrapper").style.display = "none";
         
+        document.getElementById("monthly-chart-title").innerText = `${year} - ${getMonthName(month)} Günlük Doluluk Grafiği (%)`;
+        document.getElementById("daily-table-title").innerText = `${year} - ${getMonthName(month)} Günlük Detaylı Reel Doluluk Matrisi`;
+
         fetch(`/api/data?year=${year}&month=${month}`)
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
                     renderKPIs(res.data);
-                    renderChart(res.data);
-                    renderTable(res.data);
-                    updateVerificationPanel(res.data);
+                    renderMonthlyChart(res.data);
+                    renderMonthlyTable(res.data);
                 }
             })
             .catch(err => {
@@ -562,17 +567,35 @@ th, td {
             });
     }
 
+    function loadSeasonalData() {
+        const year = document.getElementById("year-select").value;
+
+        document.getElementById("seasonal-chart-loader").style.display = "flex";
+        document.getElementById("seasonal-chart-wrapper").style.display = "none";
+        document.getElementById("seasonal-table-loader").style.display = "flex";
+        document.getElementById("seasonal-table-wrapper").style.display = "none";
+
+        document.getElementById("seasonal-chart-title").innerText = `${year} Reel Doluluk/Unused Grafiği`;
+        document.getElementById("seasonal-table-title").innerText = `${year} Sezonu Kümülatif Ay Bazında Reel Doluluk Tablosu`;
+
+        fetch(`/api/seasonal_data?year=${year}`)
+            .then(res => res.json())
+            .then(res => {
+                if (res.success && res.data) {
+                    renderSeasonalChart(res.data, year);
+                    renderSeasonalTable(res.data, year);
+                }
+            })
+            .catch(err => {
+                console.error("Seasonal fetch error:", err);
+                document.getElementById("seasonal-chart-loader").innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:var(--danger)"></i> Yükleme hatası';
+                document.getElementById("seasonal-table-loader").innerHTML = '<i class="fa-solid fa-circle-xmark" style="color:var(--danger)"></i> Yükleme hatası';
+            });
+    }
+
     function renderKPIs(data) {
         const panel = document.getElementById("kpi-panel");
-        
-        // Calculate monthly aggregates
-        let totalCap = 0;
-        let totalSold = 0;
-        let totalUnused = 0;
-        let totalReelSold = 0;
-        let totalAdult = 0;
-        let totalUnusedPax = 0;
-        let totalReelPax = 0;
+        let totalCap = 0, totalSold = 0, totalUnused = 0, totalReelSold = 0, totalAdult = 0, totalUnusedPax = 0, totalReelPax = 0;
         
         data.forEach(d => {
             totalCap += d.capacity || 0;
@@ -586,85 +609,100 @@ th, td {
 
         const grossOcc = totalCap > 0 ? (totalSold / totalCap) * 100 : 0;
         const reelOcc = totalCap > 0 ? (totalReelSold / totalCap) * 100 : 0;
+        const noshowLoss = totalSold > 0 ? (totalUnused / totalSold) * 100 : 0;
 
         panel.innerHTML = `
-            <!-- Gross Occupancy -->
             <div class="kpi-card">
                 <div class="kpi-header">
                     <span>TOPLAM SATILAN ODA (BRÜT)</span>
                     <i class="fa-solid fa-door-open" style="color: var(--primary);"></i>
                 </div>
-                <div class="kpi-value">${totalSold.toLocaleString()} Oda</div>
-                <div class="kpi-subtext">
+                <div class="kpi-value" style="font-size: 1.8rem; font-weight: 700;">
+                    ${totalSold.toLocaleString('tr-TR')} Oda <span style="font-size: 1.8rem; color: #38bdf8; font-weight: 700;">/ ${totalAdult.toLocaleString('tr-TR')} Pax</span>
+                </div>
+                <div class="kpi-progress-bg">
+                    <div class="kpi-progress-bar" id="prog-gross" style="background: linear-gradient(90deg, #8b5cf6, #38bdf8);"></div>
+                </div>
+                <div class="kpi-subtext" style="margin-top:0.5rem;">
                     <span>Brüt Doluluk: <span class="highlight">${grossOcc.toFixed(2)}%</span></span>
-                    <span>Yetişkin Pax: <span class="highlight">${totalAdult.toLocaleString()}</span></span>
                 </div>
             </div>
             
-            <!-- Unused Noshow -->
             <div class="kpi-card danger">
                 <div class="kpi-header">
                     <span>GELMEYEN / NOSHOW (UNUSED)</span>
                     <i class="fa-solid fa-user-slash" style="color: var(--danger);"></i>
                 </div>
-                <div class="kpi-value">${totalUnused.toLocaleString()} Oda</div>
-                <div class="kpi-subtext">
-                    <span>Noshow Pax: <span class="highlight">${totalUnusedPax.toLocaleString()}</span></span>
-                    <span>Noshow Kaybı: <span class="highlight">${((totalUnused / (totalSold || 1)) * 100).toFixed(1)}%</span></span>
+                <div class="kpi-value" style="font-size: 1.8rem; font-weight: 700;">
+                    ${totalUnused.toLocaleString('tr-TR')} Oda <span style="font-size: 1.8rem; color: #f87171; font-weight: 700;">/ ${totalUnusedPax.toLocaleString('tr-TR')} Pax</span>
+                </div>
+                <div class="kpi-progress-bg">
+                    <div class="kpi-progress-bar" id="prog-noshow" style="background: linear-gradient(90deg, #ef4444, #f87171);"></div>
+                </div>
+                <div class="kpi-subtext" style="margin-top:0.5rem;">
+                    <span>Noshow Kaybı: <span class="highlight">${noshowLoss.toFixed(1)}%</span></span>
                 </div>
             </div>
             
-            <!-- Reel Occupancy -->
             <div class="kpi-card success">
                 <div class="kpi-header">
                     <span>REEL FİİLİ DOLULUK (NET)</span>
                     <i class="fa-solid fa-circle-check" style="color: var(--success);"></i>
                 </div>
-                <div class="kpi-value">${totalReelSold.toLocaleString()} Oda</div>
-                <div class="kpi-subtext">
+                <div class="kpi-value" style="font-size: 1.8rem; font-weight: 700;">
+                    ${totalReelSold.toLocaleString('tr-TR')} Oda <span style="font-size: 1.8rem; color: #34d399; font-weight: 700;">/ ${totalReelPax.toLocaleString('tr-TR')} Pax</span>
+                </div>
+                <div class="kpi-progress-bg">
+                    <div class="kpi-progress-bar" id="prog-reel" style="background: linear-gradient(90deg, #10b981, #34d399);"></div>
+                </div>
+                <div class="kpi-subtext" style="margin-top:0.5rem;">
                     <span>Reel Doluluk: <span class="highlight">${reelOcc.toFixed(2)}%</span></span>
-                    <span>Reel Pax: <span class="highlight">${totalReelPax.toLocaleString()}</span></span>
                 </div>
             </div>
         `;
+
+        setTimeout(() => {
+            document.getElementById("prog-gross").style.width = Math.min(grossOcc, 100) + "%";
+            document.getElementById("prog-noshow").style.width = Math.min(noshowLoss, 100) + "%";
+            document.getElementById("prog-reel").style.width = Math.min(reelOcc, 100) + "%";
+        }, 50);
     }
 
-    function renderChart(data) {
+    function renderMonthlyChart(data) {
         const ctx = document.getElementById('occupancy-chart').getContext('2d');
-        
-        const labels = data.map(d => d.date.split('-')[2]); // Just day number
+        const labels = data.map(d => d.date.split('-')[2]);
         const soldOccData = data.map(d => (d.occ_pct * 100).toFixed(1));
         const reelOccData = data.map(d => (d.reel_occ_pct * 100).toFixed(1));
 
-        if (chartInstance) {
-            chartInstance.destroy();
+        if (monthlyChartInstance) {
+            monthlyChartInstance.destroy();
         }
 
-        chartInstance = new Chart(ctx, {
+        monthlyChartInstance = new Chart(ctx, {
             type: 'line',
             data: {
                 labels: labels,
                 datasets: [
                     {
-                        label: 'Reel Doluluk % (SQL)',
+                        label: 'Reel Doluluk %',
                         data: reelOccData,
                         borderColor: '#10b981',
-                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.12)',
                         borderWidth: 3,
                         pointRadius: 4,
                         pointBackgroundColor: '#10b981',
-                        tension: 0.3,
+                        tension: 0.35,
                         fill: true
                     },
                     {
-                        label: 'Brüt Satılan Doluluk % (SQL)',
+                        label: 'Brüt Satılan Doluluk %',
                         data: soldOccData,
                         borderColor: '#8b5cf6',
                         borderWidth: 2,
                         pointRadius: 3,
                         pointBackgroundColor: '#8b5cf6',
                         borderDash: [5, 5],
-                        tension: 0.3,
+                        tension: 0.35,
                         fill: false
                     }
                 ]
@@ -672,12 +710,83 @@ th, td {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                },
                 plugins: {
+                    datalabels: { display: false },
+                    legend: { position: 'top', labels: { color: '#94a3b8', font: { family: 'Outfit', size: 13, weight: '500' } } },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#94a3b8', font: { family: 'Outfit' } } },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'Outfit' } }, min: 0, max: 100 }
+                }
+            }
+        });
+    }
+
+    function renderSeasonalChart(seasonalData, year) {
+        const ctx = document.getElementById('seasonal-bar-chart').getContext('2d');
+        const monthLabels = seasonalData.map(d => d.month_name_en || d.month_name);
+        const unusedData = seasonalData.map(d => d.unused_room);
+        const reelSoldData = seasonalData.map(d => d.reel_sold_room);
+
+        if (seasonalChartInstance) {
+            seasonalChartInstance.destroy();
+        }
+
+        seasonalChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: 'Unused Room',
+                        data: unusedData,
+                        backgroundColor: '#0284c7',
+                        borderColor: '#38bdf8',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.6
+                    },
+                    {
+                        label: 'Reel Sold Room',
+                        data: reelSoldData,
+                        backgroundColor: '#ea580c',
+                        borderColor: '#fb923c',
+                        borderWidth: 1,
+                        borderRadius: 6,
+                        barPercentage: 0.7,
+                        categoryPercentage: 0.6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: {
+                    duration: 1500,
+                    easing: 'easeInOutQuart'
+                },
+                plugins: {
+                    datalabels: {
+                        anchor: 'end',
+                        align: 'end',
+                        color: '#f8fafc',
+                        font: { family: 'Outfit', weight: 'bold', size: 12 },
+                        formatter: function(value) {
+                            return value > 0 ? value.toLocaleString('tr-TR') : '0';
+                        }
+                    },
                     legend: {
-                        position: 'top',
+                        position: 'bottom',
                         labels: {
-                            color: '#94a3b8',
-                            font: { family: 'Outfit', size: 12 }
+                            color: '#cbd5e1',
+                            font: { family: 'Outfit', size: 13, weight: '500' },
+                            padding: 20
                         }
                     },
                     tooltip: {
@@ -687,21 +796,105 @@ th, td {
                 },
                 scales: {
                     x: {
-                        grid: { color: 'rgba(255,255,255,0.03)' },
-                        ticks: { color: '#94a3b8', font: { family: 'Outfit' } }
+                        grid: { display: false },
+                        ticks: { color: '#cbd5e1', font: { family: 'Outfit', size: 13, weight: '600' } }
                     },
                     y: {
-                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        grid: { color: 'rgba(255,255,255,0.06)' },
                         ticks: { color: '#94a3b8', font: { family: 'Outfit' } },
-                        min: 0,
-                        max: 100
+                        beginAtZero: true,
+                        suggestedMax: Math.max(...reelSoldData, 2500) * 1.15
                     }
                 }
             }
         });
+
+        document.getElementById("seasonal-chart-loader").style.display = "none";
+        document.getElementById("seasonal-chart-wrapper").style.display = "block";
     }
 
-    function renderTable(data) {
+    function renderSeasonalTable(seasonalData, year) {
+        const tbody = document.getElementById("seasonal-table-body");
+        tbody.innerHTML = "";
+
+        let sumCap = 0, sumSold = 0, sumDiff = 0, sumAdult = 0, sumPax = 0, sumCin = 0, sumCout = 0;
+        let sumUnusedR = 0, sumUnusedP = 0, sumReelR = 0, sumReelP = 0;
+
+        seasonalData.forEach((d, idx) => {
+            sumCap += d.capacity || 0;
+            sumSold += d.sold_room || 0;
+            sumDiff += d.difference || 0;
+            sumAdult += d.adult || 0;
+            sumPax += d.total_pax || 0;
+            sumCin += d.cin_room || 0;
+            sumCout += d.cout_room || 0;
+            sumUnusedR += d.unused_room || 0;
+            sumUnusedP += d.unused_pax || 0;
+            sumReelR += d.reel_sold_room || 0;
+            sumReelP += d.reel_pax || 0;
+
+            const tr = document.createElement("tr");
+            
+            let yearTd = "";
+            if (idx === 0) {
+                yearTd = `<td rowspan="${seasonalData.length + 1}" style="vertical-align:middle; text-align:center; font-weight:700; font-size:1.1rem; background:#0f172a; border-right:1px solid rgba(255,255,255,0.1); color:var(--primary);">${year}</td>`;
+            }
+
+            const occFmt = ((d.occ_pct || 0) * 100).toFixed(2) + "%";
+            const reelOccFmt = ((d.reel_occ_pct || 0) * 100).toFixed(2) + "%";
+
+            tr.innerHTML = `
+                ${yearTd}
+                <td><strong>${d.month_name_en || d.month_name}</strong></td>
+                <td class="text-center">${d.capacity ? d.capacity.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center">${d.sold_room ? d.sold_room.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center">${d.difference ? d.difference.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center">${d.adult ? d.adult.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center">${d.total_pax ? d.total_pax.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center">${d.cin_room ? d.cin_room.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center">${d.cout_room ? d.cout_room.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center" style="font-weight:600; color:var(--primary);">${occFmt}</td>
+                
+                <td class="text-center" style="color:var(--danger); font-weight:600;">${d.unused_room ? d.unused_room.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center" style="color:var(--danger); font-weight:600;">${d.unused_pax ? d.unused_pax.toLocaleString('tr-TR') : '0'}</td>
+                
+                <td class="text-center" style="color:var(--success); font-weight:700;">${d.reel_sold_room ? d.reel_sold_room.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center" style="color:var(--success); font-weight:600;">${d.reel_pax ? d.reel_pax.toLocaleString('tr-TR') : '0'}</td>
+                <td class="text-center" style="color:var(--cyan); font-weight:700;">${reelOccFmt}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        const totalOccFmt = sumCap > 0 ? ((sumSold / sumCap) * 100).toFixed(2) + "%" : "0.00%";
+        const totalReelOccFmt = sumCap > 0 ? ((sumReelR / sumCap) * 100).toFixed(2) + "%" : "0.00%";
+
+        const trTotal = document.createElement("tr");
+        trTotal.className = "tr-total";
+        trTotal.innerHTML = `
+            <td style="color:var(--primary); font-size:0.95rem;">TOPLAM</td>
+            <td class="text-center">${sumCap.toLocaleString('tr-TR')}</td>
+            <td class="text-center">${sumSold.toLocaleString('tr-TR')}</td>
+            <td class="text-center">${sumDiff.toLocaleString('tr-TR')}</td>
+            <td class="text-center">${sumAdult.toLocaleString('tr-TR')}</td>
+            <td class="text-center">${sumPax.toLocaleString('tr-TR')}</td>
+            <td class="text-center">${sumCin.toLocaleString('tr-TR')}</td>
+            <td class="text-center">${sumCout.toLocaleString('tr-TR')}</td>
+            <td class="text-center" style="color:var(--primary); font-weight:700;">${totalOccFmt}</td>
+            
+            <td class="text-center" style="color:var(--danger); font-weight:700;">${sumUnusedR.toLocaleString('tr-TR')}</td>
+            <td class="text-center" style="color:var(--danger); font-weight:700;">${sumUnusedP.toLocaleString('tr-TR')}</td>
+            
+            <td class="text-center" style="color:var(--success); font-weight:700;">${sumReelR.toLocaleString('tr-TR')}</td>
+            <td class="text-center" style="color:var(--success); font-weight:700;">${sumReelP.toLocaleString('tr-TR')}</td>
+            <td class="text-center" style="color:var(--cyan); font-weight:700;">${totalReelOccFmt}</td>
+        `;
+        tbody.appendChild(trTotal);
+
+        document.getElementById("seasonal-table-loader").style.display = "none";
+        document.getElementById("seasonal-table-wrapper").style.display = "block";
+    }
+
+    function renderMonthlyTable(data) {
         const tbody = document.getElementById("table-body");
         tbody.innerHTML = "";
         
@@ -712,18 +905,10 @@ th, td {
             tr.innerHTML = `
                 <td><strong>${dateFmt}</strong></td>
                 <td class="text-center">${d.capacity}</td>
-                
-                <!-- Sold Room -->
                 <td class="text-center">${d.sold_room}</td>
-                
-                <!-- Unused Room -->
-                <td class="text-center">${d.unused_room}</td>
-                
-                <!-- Reel Sold Room -->
-                <td class="text-center" style="color: var(--success); font-weight: 500;">${d.reel_sold_room}</td>
-                
-                <!-- Reel Occ % -->
-                <td class="text-center" style="color: var(--cyan); font-weight: 500;">${(d.reel_occ_pct * 100).toFixed(1)}%</td>
+                <td class="text-center" style="color: var(--danger); font-weight:500;">${d.unused_room}</td>
+                <td class="text-center" style="color: var(--success); font-weight: 600;">${d.reel_sold_room}</td>
+                <td class="text-center" style="color: var(--cyan); font-weight: 600;">${(d.reel_occ_pct * 100).toFixed(1)}%</td>
             `;
             tbody.appendChild(tr);
         });
@@ -732,15 +917,11 @@ th, td {
         document.getElementById("table-wrapper").style.display = "block";
     }
 
-    function updateVerificationPanel(data) {
-        // Obsolete function kept for safety
-    }
-
     function getMonthName(m) {
         const months = {
-            '01': 'Oca', '02': 'Şub', '03': 'Mar', '04': 'Nis',
-            '05': 'May', '06': 'Haz', '07': 'Tem', '08': 'Ağu',
-            '09': 'Eyl', '10': 'Eki', '11': 'Kas', '12': 'Ara'
+            '01': 'Ocak', '02': 'Şubat', '03': 'Mart', '04': 'Nisan',
+            '05': 'Mayıs', '06': 'Haziran', '07': 'Temmuz', '08': 'Ağustos',
+            '09': 'Eylül', '10': 'Ekim', '11': 'Kasım', '12': 'Aralık'
         };
         return months[m] || m;
     }
