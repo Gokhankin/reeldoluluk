@@ -111,6 +111,37 @@
             margin-top: 2px;
         }
 
+        
+        .btn-all-season {
+            background: rgba(15, 23, 42, 0.75);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.6rem 1.25rem;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            user-select: none;
+        }
+
+        .btn-all-season:hover {
+            border-color: var(--cyan);
+            color: #38bdf8;
+            box-shadow: 0 0 14px rgba(6, 182, 212, 0.3);
+            transform: translateY(-1px);
+        }
+
+        .btn-all-season.active {
+            background: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%) !important;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+            color: #ffffff !important;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
         /* Controls / Selectors */
         .controls {
             display: flex;
@@ -388,11 +419,15 @@
             </div>
         </div>
         <div class="controls">
+            <button type="button" id="btn-all-season" class="btn-all-season" onclick="toggleAllSeason()">
+                <i class="fa-solid fa-calendar-week"></i> Tüm Sezon
+            </button>
             <select id="year-select" onchange="loadAllData()">
                 <option value="2026" selected>2026 Sezonu</option>
                 <option value="2025">2025 Sezonu</option>
             </select>
-            <select id="month-select" onchange="loadMonthlyData()">
+            <select id="month-select" onchange="onMonthSelectChange()">
+                <option value="ALL">Tüm Sezon (Mayıs - Ekim)</option>
                 <option value="05">Mayıs</option>
                 <option value="06">Haziran</option>
                 <option value="07">Temmuz</option>
@@ -530,12 +565,43 @@
         }
         
         const monthSelect = document.getElementById("month-select");
-        if (monthSelect && monthSelect.querySelector(`option[value="${curMonth}"]`)) {
-            monthSelect.value = curMonth;
+        if (monthSelect) {
+            if (['05', '06', '07', '08', '09', '10'].includes(curMonth)) {
+                monthSelect.value = curMonth;
+            } else {
+                monthSelect.value = "10";
+            }
         }
 
         loadAllData();
     });
+
+    function toggleAllSeason() {
+        const monthSelect = document.getElementById("month-select");
+        const btn = document.getElementById("btn-all-season");
+        
+        if (monthSelect.value === "ALL") {
+            const now = new Date();
+            const curMonth = String(now.getMonth() + 1).padStart(2, '0');
+            monthSelect.value = ['05', '06', '07', '08', '09', '10'].includes(curMonth) ? curMonth : '10';
+            btn.classList.remove("active");
+        } else {
+            monthSelect.value = "ALL";
+            btn.classList.add("active");
+        }
+        loadMonthlyData();
+    }
+
+    function onMonthSelectChange() {
+        const monthSelect = document.getElementById("month-select");
+        const btn = document.getElementById("btn-all-season");
+        if (monthSelect.value === "ALL") {
+            btn.classList.add("active");
+        } else {
+            btn.classList.remove("active");
+        }
+        loadMonthlyData();
+    }
 
     function loadAllData() {
         loadMonthlyData();
@@ -545,20 +611,31 @@
     function loadMonthlyData() {
         const year = document.getElementById("year-select").value;
         const month = document.getElementById("month-select").value;
+        const isAllSeason = (month === "ALL");
+        const btn = document.getElementById("btn-all-season");
+        if (btn) {
+            if (isAllSeason) btn.classList.add("active");
+            else btn.classList.remove("active");
+        }
         
         document.getElementById("table-loader").style.display = "flex";
         document.getElementById("table-wrapper").style.display = "none";
         
-        document.getElementById("monthly-chart-title").innerText = `${year} - ${getMonthName(month)} Günlük Doluluk Grafiği (%)`;
-        document.getElementById("daily-table-title").innerText = `${year} - ${getMonthName(month)} Günlük Detaylı Reel Doluluk Matrisi`;
+        if (isAllSeason) {
+            document.getElementById("monthly-chart-title").innerText = `${year} Tüm Sezon - Günlük Doluluk Grafiği (%)`;
+            document.getElementById("daily-table-title").innerText = `${year} Tüm Sezon - Günlük Detaylı Reel Doluluk Matrisi (1 Mayıs - 31 Ekim)`;
+        } else {
+            document.getElementById("monthly-chart-title").innerText = `${year} - ${getMonthName(month)} Günlük Doluluk Grafiği (%)`;
+            document.getElementById("daily-table-title").innerText = `${year} - ${getMonthName(month)} Günlük Detaylı Reel Doluluk Matrisi`;
+        }
 
         fetch(`/api/data?year=${year}&month=${month}`)
             .then(res => res.json())
             .then(res => {
                 if (res.success) {
-                    renderKPIs(res.data);
-                    renderMonthlyChart(res.data);
-                    renderMonthlyTable(res.data);
+                    renderKPIs(res.data, isAllSeason);
+                    renderMonthlyChart(res.data, isAllSeason);
+                    renderMonthlyTable(res.data, isAllSeason);
                 }
             })
             .catch(err => {
@@ -593,7 +670,7 @@
             });
     }
 
-    function renderKPIs(data) {
+    function renderKPIs(data, isAllSeason = false) {
         const panel = document.getElementById("kpi-panel");
         let totalCap = 0, totalSold = 0, totalUnused = 0, totalReelSold = 0, totalAdult = 0, totalUnusedPax = 0, totalReelPax = 0;
         
@@ -611,10 +688,15 @@
         const reelOcc = totalCap > 0 ? (totalReelSold / totalCap) * 100 : 0;
         const noshowLoss = totalSold > 0 ? (totalUnused / totalSold) * 100 : 0;
 
+        const badge = isAllSeason ? ' <span style="font-size:0.75rem; background:rgba(139,92,246,0.3); color:#c4b5fd; padding:2px 8px; border-radius:12px; margin-left:6px;">TÜM SEZON</span>' : '';
+        const grossSub = isAllSeason ? 'Sezonluk Brüt Doluluk:' : 'Brüt Doluluk:';
+        const noshowSub = isAllSeason ? 'Sezonluk Noshow Kaybı:' : 'Noshow Kaybı:';
+        const reelSub = isAllSeason ? 'Sezonluk Reel Doluluk:' : 'Reel Doluluk:';
+
         panel.innerHTML = `
             <div class="kpi-card">
                 <div class="kpi-header">
-                    <span>TOPLAM SATILAN ODA (BRÜT)</span>
+                    <span>TOPLAM SATILAN ODA (BRÜT)${badge}</span>
                     <i class="fa-solid fa-door-open" style="color: var(--primary);"></i>
                 </div>
                 <div class="kpi-value" style="font-size: 1.8rem; font-weight: 700;">
@@ -624,13 +706,13 @@
                     <div class="kpi-progress-bar" id="prog-gross" style="background: linear-gradient(90deg, #8b5cf6, #38bdf8);"></div>
                 </div>
                 <div class="kpi-subtext" style="margin-top:0.5rem;">
-                    <span>Brüt Doluluk: <span class="highlight">${grossOcc.toFixed(2)}%</span></span>
+                    <span>${grossSub} <span class="highlight">${grossOcc.toFixed(2)}%</span></span>
                 </div>
             </div>
             
             <div class="kpi-card danger">
                 <div class="kpi-header">
-                    <span>GELMEYEN / NOSHOW (UNUSED)</span>
+                    <span>GELMEYEN / NOSHOW (UNUSED)${badge}</span>
                     <i class="fa-solid fa-user-slash" style="color: var(--danger);"></i>
                 </div>
                 <div class="kpi-value" style="font-size: 1.8rem; font-weight: 700;">
@@ -640,13 +722,13 @@
                     <div class="kpi-progress-bar" id="prog-noshow" style="background: linear-gradient(90deg, #ef4444, #f87171);"></div>
                 </div>
                 <div class="kpi-subtext" style="margin-top:0.5rem;">
-                    <span>Noshow Kaybı: <span class="highlight">${noshowLoss.toFixed(1)}%</span></span>
+                    <span>${noshowSub} <span class="highlight">${noshowLoss.toFixed(1)}%</span></span>
                 </div>
             </div>
             
             <div class="kpi-card success">
                 <div class="kpi-header">
-                    <span>REEL FİİLİ DOLULUK (NET)</span>
+                    <span>REEL FİİLİ DOLULUK (NET)${badge}</span>
                     <i class="fa-solid fa-circle-check" style="color: var(--success);"></i>
                 </div>
                 <div class="kpi-value" style="font-size: 1.8rem; font-weight: 700;">
@@ -656,7 +738,7 @@
                     <div class="kpi-progress-bar" id="prog-reel" style="background: linear-gradient(90deg, #10b981, #34d399);"></div>
                 </div>
                 <div class="kpi-subtext" style="margin-top:0.5rem;">
-                    <span>Reel Doluluk: <span class="highlight">${reelOcc.toFixed(2)}%</span></span>
+                    <span>${reelSub} <span class="highlight">${reelOcc.toFixed(2)}%</span></span>
                 </div>
             </div>
         `;
@@ -668,9 +750,15 @@
         }, 50);
     }
 
-    function renderMonthlyChart(data) {
+    function renderMonthlyChart(data, isAllSeason = false) {
         const ctx = document.getElementById('occupancy-chart').getContext('2d');
-        const labels = data.map(d => d.date.split('-')[2]);
+        const labels = data.map(d => {
+            if (isAllSeason) {
+                const parts = d.date.split('-');
+                return `${parts[2]}.${parts[1]}`;
+            }
+            return d.date.split('-')[2];
+        });
         const soldOccData = data.map(d => (d.occ_pct * 100).toFixed(1));
         const reelOccData = data.map(d => (d.reel_occ_pct * 100).toFixed(1));
 
@@ -688,8 +776,9 @@
                         data: reelOccData,
                         borderColor: '#10b981',
                         backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                        borderWidth: 3,
-                        pointRadius: 4,
+                        borderWidth: isAllSeason ? 2 : 3,
+                        pointRadius: isAllSeason ? 1.5 : 4,
+                        pointHoverRadius: 6,
                         pointBackgroundColor: '#10b981',
                         tension: 0.35,
                         fill: true
@@ -698,8 +787,9 @@
                         label: 'Brüt Satılan Doluluk %',
                         data: soldOccData,
                         borderColor: '#8b5cf6',
-                        borderWidth: 2,
-                        pointRadius: 3,
+                        borderWidth: isAllSeason ? 1.5 : 2,
+                        pointRadius: isAllSeason ? 1 : 3,
+                        pointHoverRadius: 5,
                         pointBackgroundColor: '#8b5cf6',
                         borderDash: [5, 5],
                         tension: 0.35,
@@ -711,16 +801,45 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: {
-                    duration: 1500,
+                    duration: 1200,
                     easing: 'easeInOutQuart'
                 },
                 plugins: {
                     datalabels: { display: false },
                     legend: { position: 'top', labels: { color: '#94a3b8', font: { family: 'Outfit', size: 13, weight: '500' } } },
-                    tooltip: { mode: 'index', intersect: false }
+                    tooltip: { 
+                        mode: 'index', 
+                        intersect: false,
+                        callbacks: {
+                            title: function(items) {
+                                if (!items.length) return '';
+                                const idx = items[0].dataIndex;
+                                const item = data[idx];
+                                return item ? `${item.date} (Kapasite: ${item.capacity})` : items[0].label;
+                            },
+                            afterBody: function(items) {
+                                if (!items.length) return '';
+                                const idx = items[0].dataIndex;
+                                const item = data[idx];
+                                if (!item) return '';
+                                return [
+                                    `Brüt Satılan: ${item.sold_room} Oda / ${item.adult} Pax`,
+                                    `Unused Noshow: ${item.unused_room} Oda / ${item.unused_pax} Pax`,
+                                    `Reel Net: ${item.reel_sold_room} Oda / ${item.reel_pax} Pax`
+                                ];
+                            }
+                        }
+                    }
                 },
                 scales: {
-                    x: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#94a3b8', font: { family: 'Outfit' } } },
+                    x: { 
+                        grid: { color: 'rgba(255,255,255,0.03)' }, 
+                        ticks: { 
+                            color: '#94a3b8', 
+                            font: { family: 'Outfit', size: isAllSeason ? 11 : 12 },
+                            maxTicksLimit: isAllSeason ? 25 : 31
+                        } 
+                    },
                     y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#94a3b8', font: { family: 'Outfit' } }, min: 0, max: 100 }
                 }
             }
@@ -918,6 +1037,7 @@
     }
 
     function getMonthName(m) {
+        if (m === 'ALL') return 'Tüm Sezon';
         const months = {
             '01': 'Ocak', '02': 'Şubat', '03': 'Mart', '04': 'Nisan',
             '05': 'Mayıs', '06': 'Haziran', '07': 'Temmuz', '08': 'Ağustos',

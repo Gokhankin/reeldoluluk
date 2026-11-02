@@ -37,29 +37,35 @@ def get_data():
     default_month = f'{now.month:02d}' if 5 <= now.month <= 10 else '08'
     month = request.args.get('month', default_month)
     
-    try:
-        month_int = int(month)
-        month = f"{month_int:02d}"
-    except ValueError:
-        pass
-        
-    year_month = f"{year}-{month}"
+    is_all_season = (str(month).upper() == 'ALL')
     
-    start_date = f"{year}{month}01"
-    try:
-        y = int(year)
-        m = int(month)
-        if m == 12:
-            next_month = datetime.date(y + 1, 1, 1)
-        else:
-            next_month = datetime.date(y, m + 1, 1)
-        end_date_obj = next_month - datetime.timedelta(days=1)
-        end_date = end_date_obj.strftime('%Y%m%d')
-    except Exception as e:
-        print("Date parse error:", e)
-        start_date = "20260801"
-        end_date = "20260831"
-        
+    if is_all_season:
+        year_month = f"{year}-ALL"
+        start_date = f"{year}0501"
+        end_date = f"{year}1031"
+    else:
+        try:
+            month_int = int(month)
+            month = f"{month_int:02d}"
+        except ValueError:
+            pass
+            
+        year_month = f"{year}-{month}"
+        start_date = f"{year}{month}01"
+        try:
+            y = int(year)
+            m = int(month)
+            if m == 12:
+                next_month = datetime.date(y + 1, 1, 1)
+            else:
+                next_month = datetime.date(y, m + 1, 1)
+            end_date_obj = next_month - datetime.timedelta(days=1)
+            end_date = end_date_obj.strftime('%Y%m%d')
+        except Exception as e:
+            print("Date parse error:", e)
+            start_date = "20260801"
+            end_date = "20260831"
+            
     db_results = {}
     try:
         conn = get_db_connection()
@@ -98,70 +104,77 @@ def get_data():
         conn.close()
     except Exception as e:
         print("Database query failed:", e)
-        
-    ref_list = excel_data.get(year_month, [])
-    merged_data = []
-    if not ref_list:
-        try:
-            num_days = (datetime.datetime.strptime(end_date, '%Y%m%d') - datetime.datetime.strptime(start_date, '%Y%m%d')).days + 1
-            dates = [datetime.datetime.strptime(start_date, '%Y%m%d') + datetime.timedelta(days=i) for i in range(num_days)]
-            for d in dates:
-                d_str = d.strftime('%Y-%m-%d')
-                db_item = db_results.get(d_str, {
-                    'db_sold_room': 0, 'db_adult': 0, 'db_unused_room': 0, 'db_unused_pax': 0, 'db_comp_room': 0, 'db_comp_pax': 0
-                })
-                cap = 111
-                sold = db_item['db_sold_room']
-                unused = db_item['db_unused_room']
-                reel_sold = max(0, sold - unused)
-                reel_pax = max(0, db_item['db_adult'] - db_item['db_unused_pax'])
-                
-                merged_data.append({
-                    'date': d_str,
-                    'capacity': cap,
-                    'sold_room': sold,
-                    'adult': db_item['db_adult'],
-                    'unused_room': unused,
-                    'unused_pax': db_item['db_unused_pax'],
-                    'reel_sold_room': reel_sold,
-                    'reel_pax': reel_pax,
-                    'occ_pct': (sold / cap) if cap > 0 else 0,
-                    'reel_occ_pct': (reel_sold / cap) if cap > 0 else 0,
-                    'is_live_only': True
-                })
-        except Exception as e:
-            print("Error creating fallback days:", e)
+
+    # Build dictionary of reference Excel data by date
+    ref_map = {}
+    if is_all_season:
+        for m_idx in range(5, 11):
+            for ref in excel_data.get(f"{year}-{m_idx:02d}", []):
+                ref_map[ref['date']] = ref
     else:
-        for ref in ref_list:
-            d_str = ref['date']
-            db_item = db_results.get(d_str, None)
+        for ref in excel_data.get(year_month, []):
+            ref_map[ref['date']] = ref
+
+    merged_data = []
+    num_days = (datetime.datetime.strptime(end_date, '%Y%m%d') - datetime.datetime.strptime(start_date, '%Y%m%d')).days + 1
+    dates = [datetime.datetime.strptime(start_date, '%Y%m%d') + datetime.timedelta(days=i) for i in range(num_days)]
+    
+    for d in dates:
+        d_str = d.strftime('%Y-%m-%d')
+        ref = ref_map.get(d_str)
+        db_item = db_results.get(d_str)
+        
+        cap = ref['capacity'] if ref else 111
+        if db_item:
+            sold = db_item['db_sold_room']
+            adult = db_item['db_adult']
+            unused = db_item['db_unused_room']
+            unused_pax = db_item['db_unused_pax']
+            reel_sold = max(0, sold - unused)
+            reel_pax = max(0, adult - unused_pax)
+            comp_room = db_item.get('db_comp_room', 0)
+            comp_pax = db_item.get('db_comp_pax', 0)
+        elif ref:
+            sold = ref['sold_room']
+            adult = ref['adult']
+            unused = ref['unused_room']
+            unused_pax = ref['unused_pax']
+            reel_sold = ref['reel_sold_room']
+            reel_pax = ref['reel_pax']
+            comp_room = 0
+            comp_pax = 0
+        else:
+            sold = 0
+            adult = 0
+            unused = 0
+            unused_pax = 0
+            reel_sold = 0
+            reel_pax = 0
+            comp_room = 0
+            comp_pax = 0
             
-            item = {
-                'date': d_str,
-                'capacity': ref['capacity'],
-                'ex_sold_room': ref['sold_room'],
-                'ex_adult': ref['adult'],
-                'ex_unused_room': ref['unused_room'],
-                'ex_unused_pax': ref['unused_pax'],
-                'ex_reel_sold_room': ref['reel_sold_room'],
-                'ex_reel_pax': ref['reel_pax'],
-                'ex_occ_pct': ref['occ_pct'],
-                'ex_reel_occ_pct': ref['reel_occ_pct'],
-                'sold_room': db_item['db_sold_room'] if db_item else ref['sold_room'],
-                'adult': db_item['db_adult'] if db_item else ref['adult'],
-                'unused_room': db_item['db_unused_room'] if db_item else ref['unused_room'],
-                'unused_pax': db_item['db_unused_pax'] if db_item else ref['unused_pax'],
-                'reel_sold_room': (db_item['db_sold_room'] - db_item['db_unused_room']) if db_item else ref['reel_sold_room'],
-                'reel_pax': (db_item['db_adult'] - db_item['db_unused_pax']) if db_item else ref['reel_pax'],
-                'comp_room': db_item['db_comp_room'] if db_item else 0,
-                'comp_pax': db_item['db_comp_pax'] if db_item else 0,
-                'is_live_only': False
-            }
-            cap = item['capacity']
-            item['occ_pct'] = (item['sold_room'] / cap) if cap > 0 else 0
-            item['reel_occ_pct'] = (item['reel_sold_room'] / cap) if cap > 0 else 0
-            merged_data.append(item)
-            
+        occ = (sold / cap) if cap > 0 else 0
+        reel_occ = (reel_sold / cap) if cap > 0 else 0
+        
+        merged_data.append({
+            'date': d_str,
+            'capacity': cap,
+            'sold_room': sold,
+            'adult': adult,
+            'unused_room': unused,
+            'unused_pax': unused_pax,
+            'reel_sold_room': reel_sold,
+            'reel_pax': reel_pax,
+            'comp_room': comp_room,
+            'comp_pax': comp_pax,
+            'occ_pct': occ,
+            'reel_occ_pct': reel_occ,
+            'ex_sold_room': ref['sold_room'] if ref else None,
+            'ex_unused_room': ref['unused_room'] if ref else None,
+            'ex_reel_sold_room': ref['reel_sold_room'] if ref else None,
+            'is_live_only': bool(db_item and not ref)
+        })
+        
     return jsonify({
         'success': True,
         'year_month': year_month,
